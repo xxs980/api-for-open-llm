@@ -1,9 +1,6 @@
 import sys
 import os
 
-import torch
-print("Cuda support:", torch.cuda.is_available(),":", torch.cuda.device_count(), "devices")
-
 sys.path.insert(0, ".")
 print(__file__)
 print(os.path.abspath(__file__))  # 获取当前文件的绝对路径
