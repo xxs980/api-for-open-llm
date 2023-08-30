@@ -1,26 +1,32 @@
-version: '3.10'
+version: '3.3'
 
 services:
-  apiserver:
+  #公共配置
+  common:
     image: llm-api:pytorch
     command: python api/server.py
     ulimits:
       stack: 67108864
       memlock: -1
-    environment:
-      - PORT=8000
-      - MODEL_NAME=qwen
-      - MODEL_PATH=checkpoints/qwen-7b-chat
-      - EMBEDDING_NAME=checkpoints/m3e-base
-      - DEVICE_MAP=auto
     volumes:
-      - $PWD:/workspace
-      # model path need to be specified if not in pwd
-#      - /data/checkpoints:/workspace/checkpoints
+      - /mnt/data1/llm_models:/workspace/llm_models
+      - /home/zhoupengzhen/api-for-open-llm/api:/workspace/api
+      - /home/zhoupengzhen/data/checkpoints:/workspace/checkpoints
     env_file:
       - .env.example
+
+  qwen:
+    extends:
+        service: common
+    environment:
+      - PORT=8001
+      - MODEL_NAME=qwen
+      - MODEL_PATH=llm_models/Qwen-7B-Chat
+      - EMBEDDING_NAME=checkpoints/m3e-base
+      - DEVICE_MAP=auto
     ports:
-      - "7891:8000"
+      - "192.168.10.254:6001:8001"
+     
     restart: always
     networks:
       - apinet
@@ -29,8 +35,77 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ['0']
+              device_ids: ['0','1']
               capabilities: [gpu]
+
+  baichuan:
+    extends:
+        service: common
+    environment:
+      - PORT=8002
+      - MODEL_NAME=baichuan
+      - MODEL_PATH=llm_models/Baichuan-13B-Chat
+      - EMBEDDING_NAME=checkpoints/m3e-base
+      - DEVICE_MAP=auto
+    ports:
+      - "192.168.10.254:6002:8002"
+    restart: always
+    networks:
+      - apinet
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['2','3']
+              capabilities: [gpu]
+
+  chatglm2:
+    extends:
+        service: common
+    environment:
+      - PORT=8003
+      - MODEL_NAME=chatglm2
+      - MODEL_PATH=llm_models/chatglm2-6b
+      - EMBEDDING_NAME=checkpoints/m3e-base
+      - DEVICE_MAP=auto
+    ports:
+      - "192.168.10.254:6003:8003"
+      
+    restart: always
+    networks:
+      - apinet
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['4']
+              capabilities: [gpu]
+
+  internlm:
+      extends:
+          service: common
+      environment:
+        - PORT=8004
+        - MODEL_NAME=internlm
+        - MODEL_PATH=llm_models/internlm-chat-7b-v1_1
+        - EMBEDDING_NAME=checkpoints/m3e-base
+        - DEVICE_MAP=auto
+      ports:
+        - "192.168.10.254:6004:8004"
+      
+      restart: always
+      networks:
+        - apinet
+      deploy:
+        resources:
+          reservations:
+            devices:
+              - driver: nvidia
+                device_ids: ['5','6']
+                capabilities: [gpu]
+
 
 networks:
   apinet:

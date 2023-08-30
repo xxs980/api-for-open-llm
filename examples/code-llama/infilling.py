@@ -4,7 +4,7 @@ from langchain.llms import OpenAI
 
 llm = OpenAI(
     model_name="code-llama",
-    openai_api_base="http://192.168.0.53:7891/v1",
+    openai_api_base="http://192.168.10.254:6005/v1",
     openai_api_key="xxx",
     model_kwargs={"infilling": True},
     max_tokens=128,

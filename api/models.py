@@ -80,7 +80,7 @@ def get_vllm_engine():
         max_num_seqs=config.MAX_NUM_SEQS,
     )
     engine = AsyncLLMEngine.from_engine_args(engine_args)
-
+    
     # A separate tokenizer to map token IDs to strings.
     if "code-llama" in config.MODEL_NAME.lower():
         try:

@@ -5,7 +5,7 @@ from langchain.schema import HumanMessage, SystemMessage
 
 llm = ChatOpenAI(
     model_name="code-llama",
-    openai_api_base="http://192.168.0.53:7891/v1",
+    openai_api_base="http://192.168.10.254:6005/v1",
     openai_api_key="xxx",
 )
 

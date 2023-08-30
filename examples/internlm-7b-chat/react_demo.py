@@ -3,13 +3,33 @@
 import json
 
 from langchain.llms import OpenAI
+import openai
 
 llm = OpenAI(
-    model_name="qwen",
+    model_name="internnlm",
     temperature=0,
-    openai_api_base="http://192.168.0.53:7891/v1",
+    openai_api_base="http://192.168.10.254:6004/v1",
     openai_api_key="xxx",
 )
+
+
+def chat_completion_request(query):
+    openai.api_base = "http://192.168.10.254:6004/v1"
+    openai.api_key = "xxx"
+    messages = [
+                {
+                    "role":"user",
+                    "content": "{}".format(query),
+                }
+            ]
+    response = openai.ChatCompletion.create(
+        model="internlm",
+        # model="/mnt/data1/llm_models/Qwen-7B-Chat",
+        messages=messages,
+        temperature=0,
+    )
+    response = response['choices'][0]['message']['content']
+    return response
 
 TOOL_DESC = """{name_for_model}: Call this tool to interact with the {name_for_human} API. What is the {name_for_human} API useful for? {description_for_model} Parameters: {parameters}"""
 
@@ -54,18 +74,18 @@ def llm_with_plugin(prompt: str, history, list_of_plugin_info=()):
     planning_prompt = build_input_text(chat_history, list_of_plugin_info)
 
     text = ""
-    while True:
-        output = llm(planning_prompt + text, stop=["Response:"])
-        action, action_input, output = parse_latest_plugin_call(output)
-        if action:  # 需要调用插件
-            # action、action_input 分别为需要调用的插件代号、输入参数
-            # observation是插件返回的结果，为字符串
-            observation = call_plugin(action, action_input)
-            output += f"\nResponse: {observation}\nThought:"
-            text += output
-        else:  # 生成结束，并且不再需要调用插件
-            text += output
-            break
+    # while True:
+    output = llm(planning_prompt + text, stop=["Response:"])
+    action, action_input, output = parse_latest_plugin_call(output)
+    if action:  # 需要调用插件
+        # action、action_input 分别为需要调用的插件代号、输入参数
+        # observation是插件返回的结果，为字符串
+        observation = call_plugin(action, action_input)
+        output += f"\nResponse: {observation}\nThought:"
+        text += output
+    else:  # 生成结束，并且不再需要调用插件
+        text += output
+        # break
 
     new_history = []
     new_history.extend(history)
@@ -151,15 +171,23 @@ def call_plugin(plugin_name: str, plugin_args: str) -> str:
 
         def calculate_quad(formula_str: str, a: float, b: float) -> float:
             """ 计算数值积分 """
-            return integrate.quad(eval('lambda x: ' + formula_str.split("=")[-1]), a, b)[0]
+            func = lambda x: eval(formula_str)
+            return integrate.quad(func, a, b)[0]
 
         plugin_args = json.loads(plugin_args)
         for k in ["a", "b"]:
             if k in plugin_args:
                 plugin_args[k] = float(plugin_args[k])
         return calculate_quad(**plugin_args)
+    elif plugin_name == "Text2Text":
+        plugin_args = json.loads(plugin_args)
+        query = plugin_args['text']
+        return chat_completion_request(query)
     else:
-        raise NotImplementedError
+        # raise NotImplementedError
+        plugin_args = json.loads(plugin_args)
+        query = plugin_args['text']
+        return chat_completion_request(query)
 
 
 def test():
@@ -184,7 +212,7 @@ def test():
             "parameters": [
                 {
                     "name": 'formula_str',
-                    "description": '一个数学函数的表达式，例如x**2+x',
+                    "description": '一个数学函数的表达式，例如x**2',
                     "required": True,
                     "schema": {"type": "string"},
                 },
@@ -204,7 +232,8 @@ def test():
         },
     ]
     history = []
-    for query in ["你好", "给我画个可爱的小猫吧，最好是黑猫", "函数f(x)=x**2在区间[0,5]上的定积分是多少？"]:
+    # for query in ["你好", "给我画个可爱的小猫吧，最好是黑猫", "函数f(x)=x**2在区间[0,5]上的定积分是多少？"]:
+    for query in ["你能做什么"]:
         print(f"User's Query:\n{query}\n")
         response, history = llm_with_plugin(prompt=query, history=history, list_of_plugin_info=tools)
         print(f"InternLM's Response:\n{response}\n")

@@ -15,3 +15,4 @@ tabulate
 pymysql
 tiktoken
 nltk~=3.8.1
+typing-extensions==4.5.0
